@@ -1,0 +1,6 @@
+# exclude everything
+browser-profiles/*
+
+# exception to the rule
+!browser-profiles/.gitkeep
+!browser-profiles/.bp-proxies.json

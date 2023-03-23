@@ -6,11 +6,11 @@ import re
 import colorama
 import os
 import gzip
+import uuid
 import shutil
 
 from datetime import datetime
 from termcolor import colored
-from requests.adapters import HTTPAdapter, Retry
 
 from selenium.common.exceptions import TimeoutException, InvalidArgumentException
 from selenium.webdriver.chrome.options import Options
@@ -19,16 +19,14 @@ from chTools import chTools
 
 colorama.init()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-retry = Retry(connect=3, backoff_factor=0.5)
-adapter = HTTPAdapter(max_retries=retry)
 chTools = chTools()
 
 token_lock, captcha_lock = threading.Lock(), threading.Lock(),
 
 # Harvester
 harvesters = []
-g_recaptcha_tokens = []
-token_amount = 0
+token_inquirers = {}
+tokens = {}
 
 
 class Harvester:
@@ -76,21 +74,12 @@ class Harvester:
                 'yellow'))
 
     @staticmethod
-    def valid_token_amount():
-        global token_amount
+    def token_needed():
+        global tokens
         token_lock.acquire()
-        if token_amount > 0:
-            token_amount -= 1
-            return True
+        if len(token_inquirers) > 0:
+            return list(token_inquirers.keys())[0]
         return False
-
-    @staticmethod
-    def append_token(token):
-        global g_recaptcha_tokens
-        print("Acquiring...", "p")
-        token_lock.acquire()
-        g_recaptcha_tokens.append(token)
-        token_lock.release()
 
     def waiting(self):
         waiting_html = """
@@ -135,17 +124,23 @@ class Harvester:
                                        seleniumwire_options=self.proxy)
         self.waiting()
 
-    def captcha(self, captchaType, captchaUrl):
+    def wait_for_captcha(self):
         try:
             self.waiting()
             while True:
 
-                if self.valid_token_amount():
+                task_id = self.token_needed()
+                if task_id:
                     self.log("Token in need! Grabbing one...", "p")
+                    task = token_inquirers[task_id]
+                    token_inquirers.pop(task_id)
                     token_lock.release()
-                    self.driver.get(captchaUrl)
-                    g_recaptcha_token = self.get_valid_token(captchaType)
-                    self.append_token(g_recaptcha_token)
+
+                    self.driver.get(task["url"])
+                    g_recaptcha_token = self.get_valid_token(task["type"])
+                    with token_lock:
+                        tokens[task_id] = g_recaptcha_token
+                    self.waiting()
                     continue
                 token_lock.release()
         except InvalidArgumentException:
@@ -158,16 +153,16 @@ class Harvester:
             self.log("Waiting for Captcha...", "p")
 
             try:
-                if captcha_type == "ReCaptcha V2":
-                    request = self.driver.wait_for_request(pat='/recaptcha/api2/userverify', timeout=10000)
-
-                else:  # ReCaptcha V3
-                    request = self.driver.wait_for_request(pat='/recaptcha/enterprise/reload', timeout=10000)
+                version_paths = {
+                    "v2": "/recaptcha/api2/userverify",
+                    "v3": "/recaptcha/enterprise/reload"
+                }
+                request = self.driver.wait_for_request(pat=version_paths[captcha_type], timeout=10000)
 
                 response_body = str(gzip.decompress(request.response.body)).replace('"', '')
                 response_list = response_body.split(',')
                 recaptcha_token = response_list[1]
-                invalid_v2_token = re.findall("bgdata", response_body) and captcha_type == "ReCaptcha V2"
+                invalid_v2_token = re.findall("bgdata", response_body) and captcha_type == "v2"
                 if invalid_v2_token:
                     self.log("Invalid recaptcha token.", "F")
                     del self.driver.requests
@@ -175,7 +170,6 @@ class Harvester:
 
                 self.log('Valid token found', "s")
                 del self.driver.requests
-                self.driver.refresh()
                 return recaptcha_token
 
             except TimeoutError or TimeoutException:
@@ -295,64 +289,62 @@ def open_harvester():
     harvesters.append(harvester)
     harvester.number = harvesters.index(harvester)
     harvester.open()
-    harvester.captcha("v2", "https://www.google.com/recaptcha/api2/demo")
+    threading.Thread(target=harvester.wait_for_captcha, args=()).start()
     menu()
 
 
-def harvest_token():
+def harvest_token(captchaType, captchaURL):
     print("In queue for captcha token...")
-    global token_amount
-    global g_recaptcha_tokens
-    token_lock.acquire()
-    token_amount += 1  # Adds 1 to the amount of tokens needed from the harvester.
-    token_lock.release()
+    global tokens
+    with token_lock:
+        task_id = uuid.uuid4()
+        token_inquirers[task_id] = {
+            "type": captchaType,
+            "url": captchaURL,
+        }
 
     # Enter queue to get token
-    captcha_lock.acquire()
-    while not g_recaptcha_tokens:
-        continue
-    g_recaptcha_token = g_recaptcha_tokens[0]
-    token_lock.acquire()
-    g_recaptcha_tokens.pop(0)
-    token_lock.release()
-    captcha_lock.release()
+    with captcha_lock:
+        while not tokens.get(task_id):
+            continue
+        g_recaptcha_token = tokens[task_id]
+        print("Task received token:", g_recaptcha_token)
+        with token_lock:
+            tokens.pop(task_id)
+
     return g_recaptcha_token
 
 
 def menu(message=None):
-    global token_amount
     chTools.clear()
     print(message)
     menu_answer = chTools.question(name="Selection", message="Main Menu",
                                    choices=["Start Tasks", 'Chrome Login', "Open Harvester",
-                                            'Your Browser Profiles', 'Exit'])
+                                            'Your Browser Profiles', 'Test the Captcha Harvester', 'Exit'])
 
     if menu_answer == "Start Tasks":
-        harvest_token()
-        time.sleep(5)
-        harvest_token()
-        time.sleep(3)
-        harvest_token()
-    elif menu_answer == "Harvest Captchas":
+        print("Nothing here lol. Call your own function. -line329")
+    elif menu_answer == "Test the Captcha Harvester":
         if not harvesters:
             menu(message=bcolors.FAIL + "No open harvesters." + bcolors.ENDC)
 
         ReCaptchaType = chTools.question(name="ReCaptcha Type", message="ReCaptcha Type:",
-                                         choices=["ReCaptcha V2", "Recaptcha V3 (Invisble)"])
+                                         choices=["v2"])
 
-        # Configurable code (amount of tokens you want)
         tokenAmount = int(chTools.question(name="Token Amount", message="Enter token amount:"))
-        token_amount = tokenAmount
-        threads = []
+
         for harvester in harvesters:
-            thread = threading.Thread(target=harvester.captcha,
-                                      args=(ReCaptchaType, "https://www.adidas.ae/yeezy",))
+            threading.Thread(target=harvester.wait_for_captcha, args=()).start()
+
+        threads = []
+        for n in range(tokenAmount):
+            thread = threading.Thread(target=harvest_token, args=(ReCaptchaType, "https://www.google.com/recaptcha/api2/demo"))
             thread.start()
             threads.append(thread)
+
         for thread in threads:
             thread.join()
 
-        # CONFIGURE HERE TO WAIT FOR MORE NEEDED TOKENS!
         menu(message=bcolors.OKMSG + "Finished captcha token collection." + bcolors.ENDC)
     elif menu_answer == "Exit":
         for harvester in harvesters:

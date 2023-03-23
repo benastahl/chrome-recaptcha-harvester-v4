@@ -2,17 +2,14 @@ aiofiles==23.1.0
 async-generator==1.10
 attrs==22.2.0
 bcolors==1.0.2
-beautifulsoup4==4.12.0
 blinker==1.5
 Brotli==1.0.9
-bs4==0.0.1
 certifi==2022.12.7
 cffi==1.15.1
 charset-normalizer==3.1.0
 colorama==0.4.6
 cryptography==39.0.2
 dict-toolbox==3.1.0
-discord-webhook==1.1.0
 exceptiongroup==1.1.1
 h11==0.14.0
 h2==4.1.0
@@ -39,7 +36,6 @@ PySocks==1.7.1
 PyYAML==6.0
 regex==2023.3.22
 rend==6.5.2
-requests==2.28.2
 selenium==4.8.2
 selenium-wire==5.1.0
 six==1.16.0

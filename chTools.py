@@ -30,7 +30,7 @@ class chTools:
 
     @staticmethod
     def get_formatted_proxies():
-        with open("proxies.txt", "r") as f:
+        with open("harvester_proxies.txt", "r") as f:
             proxies = [line.replace("\n", "") for line in f.readlines()]
         with open("browser-profiles/bp-proxies.json", "r") as f:
             bp_proxies = [data["proxy"] for data in json.load(f).values()]
@@ -129,6 +129,6 @@ class chTools:
         opts.add_argument('disable-infobars')
         opts.add_argument('--window-size=500,645')
         opts.add_argument('--allow-profiles-outside-user-dir')
-        opts.add_argument('--blink-settings=imagesEnabled=false')
+        # opts.add_argument('--blink-settings=imagesEnabled=false')  # DISABLES IMAGES
         opts.add_experimental_option('excludeSwitches', ['enable-logging'])
         return opts
