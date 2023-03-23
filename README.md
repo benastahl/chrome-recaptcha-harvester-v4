@@ -19,7 +19,7 @@ Select `Open Harvester` in the CLI menu. Select the browser profile you want. Fo
 #### 4. Call for token
 To call for a `g_recaptcha_token`, simply call the `harvest_captcha` function with the captcha type and URL of the captcha location. ex:
 ```python
-harvest_captcha(captchaType="v2", captchaURL="https://www.google.com/recaptcha/api2/demo")
+g_recaptcha_token = harvest_captcha(captchaType="v2", captchaURL="https://www.google.com/recaptcha/api2/demo")
 ```
 When called, a request will be put into a queue for the next available harvester for you to solve. Once solved, the function will return the `g_recaptcha_token`
 ***
