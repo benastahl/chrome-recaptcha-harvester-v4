@@ -1,14 +1,1 @@
-{
-  "EEEE": {
-    "proxy": null
-  },
-  "Real": {
-    "proxy": "Local Host"
-  },
-  "Hope": {
-    "proxy": null
-  },
-  "New": {
-    "proxy": "Local Host"
-  }
-}
+{}
