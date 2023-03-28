@@ -8,7 +8,9 @@ If you have questions or need help setting up, please join the discord [here](ht
 
 ***
 ## Setup
-#### 1. Chrome Login
+#### 1. Install Requirements
+Install all project requirements with `pip3 install -r requirements.txt` 
+#### 2. Chrome Login
 The `chrome_login` function only needs to called once for each profile you want to create. If you attempt to call it twice with the same `profile_name`, it will send an error. Once called, a browser will open where you will log-in to your chrome account.`chrome_login` takes in 2 arguments:
 - `profile_name`: which can be anything that meet file name formatting.
 - `proxy`: _Optional_. This is, by default, set to off. Meaning if you don't fill in the argument, the harvester will use `localhost` (or your own ip address). Argument format: `host:port:username:password`.
@@ -22,13 +24,13 @@ chrome_login(profile_name="Your super cool profile")
 ```
 
 
-#### 2. Open Harvester
+#### 3. Open Harvester
 Open your harvester simply by calling the `open_harvester` with the `profile_name` you want to open the harvester with. Once called, a browser will open with a `Waiting for Captcha` page. This harvester is now on standby for any `harvest_token` function calls.
 ```python
 open_harvester(profile_name="Your super cool profile")
 ```
 
-#### 3. Call for token
+#### 4. Call for token
 To call for a `g_recaptcha_token`, simply call the `harvest_token` function with the captcha type and URL of the captcha location.
 
 ReCaptcha V2:
