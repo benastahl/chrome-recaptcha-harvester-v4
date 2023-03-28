@@ -79,7 +79,7 @@ if __name__ == '__main__':
     
     # V2 calls
     for _ in range(3):
-        threading.Thread(target=harvest_token, args=("v2", "https://www.google.com/recaptcha/api2/demo"))
+        threading.Thread(target=harvest_token, args=("v2", "https://www.google.com/recaptcha/api2/demo")).start()
 
 ```
 ***
