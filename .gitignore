@@ -3,3 +3,10 @@ browser-profiles/*
 
 # exception to the rule
 !browser-profiles/.gitkeep
+
+# chromedrivers
+/chromedrivers/*
+!chromedrivers/.gitkeep
+
+
+main.py
